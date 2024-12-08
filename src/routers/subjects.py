@@ -1,25 +1,25 @@
-# subjects.py
 from fastapi import APIRouter, HTTPException
-from db import get_db_connection
+from database import database_instance
 
-router = APIRouter()
+class Subjects:
+    def get_subjects(self):
+        connection = database_instance.get_db_connection()  
+        if not connection:
+            raise HTTPException(status_code=500, detail="Failed to connect to the database")
+        
+        cursor = connection.cursor(dictionary=True)
 
-# This endpoint handles listing subjects for a specific department
-@router.get("/")
-def list_subjects_of_department(department_name: str):
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    query = "SELECT * FROM subjects WHERE department = %s"
+        try:
+            cursor.execute("SELECT * FROM subjects")
+            subjects = cursor.fetchall()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        finally:
+            connection.close()
+        
+        if not subjects:
+            raise HTTPException(status_code=404, detail="No subjects found")
+        
+        return subjects
     
-    try:
-        cursor.execute(query, (department_name,))
-        subjects = cursor.fetchall()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Error fetching subjects")
-    finally:
-        connection.close()
-    
-    if not subjects:
-        raise HTTPException(status_code=404, detail="Subjects not found for the department")
-    
-    return subjects
+subjects_instance = Subjects()
